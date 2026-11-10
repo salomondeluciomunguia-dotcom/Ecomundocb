@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecomundo | Cuida el planeta</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e8f5e9;color:#24352a;font-family:"Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(90deg,#2e7d32,#66bb6a);color:white;padding:18px;text-align:center}
+header h1{margin:0 0 5px}
+#playerForm{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+#playerForm input{padding:9px;border:0;border-radius:8px;font:inherit}
+#playerForm button{padding:9px 13px;border:0;border-radius:8px;background:#fff;color:#2e7d32;font-weight:bold}
+nav{display:flex;justify-content:center;gap:10px;background:#1b5e20;padding:12px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer}
+nav button{padding:10px 18px;border:0;border-radius:20px;background:white;color:#2e7d32;font-weight:bold}
+nav button.active{background:#ffeb3b}
+.section{display:none;padding:20px;max-width:1100px;margin:auto}
+.section.active{display:block}
+.btn-menu,.primary{margin:10px 0;padding:10px 16px;background:#2e7d32;color:white;border:0;border-radius:20px}
+#gameArea{position:relative;width:100%;height:480px;background:linear-gradient(#87ceeb,#c8e6c9);border:3px solid #2e7d32;overflow:hidden;border-radius:15px}
+.item{position:absolute;font-size:34px;z-index:2;user-select:none}
+.bin{position:absolute;bottom:5px;width:30%;height:90px;border-radius:15px 15px 5px 5px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;text-align:center;cursor:pointer;z-index:1}
+#bin-organica{left:2%;background:#795548}
+#bin-plastico{left:35%;background:#1565c0}
+#bin-papel{left:68%;background:#f9a825;color:#222}
+.stats{display:flex;justify-content:space-around;gap:8px;margin:10px 0;background:white;padding:12px;border-radius:10px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;background:white;margin-top:15px}
+th{background:#2e7d32;color:white;padding:10px}
+td{padding:10px;text-align:center;border-bottom:1px solid #ddd}
+tr.you{background:#fff9c4;font-weight:bold}
+#mensaje{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#4caf50;color:white;padding:14px 20px;border-radius:12px;display:none;z-index:10;text-align:center;max-width:90%}
+.book-wrap{display:flex;justify-content:center;margin-top:20px}
+.book{width:900px;max-width:100%;min-height:400px;display:flex;background:#fdf6e3;border:4px solid #8d6e63;border-radius:15px;overflow:hidden;box-shadow:0 10px 30px #0003}
+.page{width:50%;padding:25px;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;text-align:center}
+.page-left{background:linear-gradient(#fffef5,#f5e6c8);border-right:3px dashed #8d6e63}
+.page-right{background:white}
+.page-number{position:absolute;bottom:10px;font-size:12px;color:#8d6e63}
+.dato-text{font-size:20px;line-height:1.5;color:#3e2723}
+.dato-emoji{font-size:90px;margin-bottom:15px}
+.dato-img-desc{font-size:14px;color:#555;margin-top:10px;background:#e8f5e9;padding:8px 12px;border-radius:20px}
+.book-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:15px auto;max-width:900px}
+.book-controls button{padding:10px 18px;border:0;border-radius:25px;background:#5d4037;color:white;font-weight:bold}
+.book-controls button:disabled{opacity:.4;cursor:not-allowed}
+#progressBar{height:8px;background:#c8e6c9;border-radius:10px;margin:15px auto;max-width:900px;overflow:hidden}
+#progressFill{height:100%;background:#2e7d32;width:0;transition:.3s}
+@media(max-width:600px){
+  .section{padding:12px}
+  .book{min-height:360px}
+  .page{padding:15px 10px}
+  .dato-text{font-size:17px}
+  .dato-emoji{font-size:65px}
+  .bin{font-size:13px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌎 Ecomundo ♻️</h1>
+  <p id="playerIdDisplay">Elige un apodo para aparecer en el ranking</p>
+  <form id="playerForm" onsubmit="savePlayerName(event)">
+    <label for="playerNameInput">Tu apodo:</label>
+    <input id="playerNameInput" type="text" maxlength="20" placeholder="Escribe tu apodo" required>
+    <button type="submit">Guardar apodo</button>
+  </form>
+</header>
+
+<nav>
+  <button onclick="showSection('juego')" id="btn-juego" class="active">🎮 Juego</button>
+  <button onclick="showSection('tabla')" id="btn-tabla">🏆 Clasificación</button>
+  <button onclick="showSection('datos')" id="btn-datos">📖 50 curiosidades</button>
+  <button onclick="showSection('creditos')" id="btn-creditos">👥 Créditos</button>
+</nav>
+
+<div id="mensaje" role="status" aria-live="polite"></div>
+
+<section id="juego" class="section active">
+  <button class="btn-menu" onclick="showSection('juego')">🏠 Menú principal</button>
+  <div class="stats">
+    <div>✅ Correctas: <span id="correctas">0</span></div>
+    <div>⭐ Puntos: <span id="puntos">0</span></div>
+    <div>❌ Errores: <span id="errores">0</span></div>
+  </div>
+  <p style="text-align:center">Clasifica el residuo que cae. Usa las teclas 1, 2 y 3 o toca el contenedor correcto.</p>
+  <div id="gameArea">
+    <div id="bin-organica" class="bin" onclick="checkDrop('organica')">🍎 ORGÁNICA [1]</div>
+    <div id="bin-plastico" class="bin" onclick="checkDrop('plastico')">🧴 PLÁSTICO [2]</div>
+    <div id="bin-papel" class="bin" onclick="checkDrop('papel')">📄 PAPEL [3]</div>
+  </div>
+  <div style="text-align:center;margin-top:10px">
+    <button class="primary" onclick="startGame()">▶️ Iniciar / reiniciar</button>
+  </div>
+</section>
+
+<section id="tabla" class="section">
+  <button class="btn-menu" onclick="showSection('juego')">🏠 Regresar al juego</button>
+  <h2>🏆 Mejores Eco-Héroes</h2>
+  <p>Los puntajes se guardan en este navegador.</p>
+  <table id="tablaClas">
+    <thead><tr><th>Posición</th><th>Jugador</th><th>Puntaje</th><th>Correctas</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section id="datos" class="section">
+  <button class="btn-menu" onclick="showSection('juego')">🏠 Regresar al juego</button>
+  <h2 style="text-align:center;color:#5d4037">📖 Librito ambiental: 50 curiosidades</h2>
+  <div id="progressBar"><div id="progressFill"></div></div>
+  <div class="book-wrap">
+    <div class="book">
+      <div class="page page-left">
+        <div class="dato-text" id="datoTexto"></div>
+        <span class="page-number" id="pageLeftNum"></span>
+      </div>
+      <div class="page page-right">
+        <div class="dato-emoji" id="datoEmoji"></div>
+        <div class="dato-img-desc" id="datoDesc"></div>
+        <span class="page-number" id="pageRightNum"></span>
+      </div>
+    </div>
+  </div>
+  <div class="book-controls">
+    <button onclick="prevDato()" id="btnPrev">⬅️ Anterior</button>
+    <span id="contadorDato"></span>
+    <button onclick="nextDato()" id="btnNext">Siguiente ➡️</button>
+  </div>
+</section>
+
+<section id="creditos" class="section">
+  <button class="btn-menu" onclick="showSection('juego')">🏠 Regresar al juego</button>
+  <div style="background:white;padding:30px;border-radius:15px;text-align:center;margin-top:20px">
+    <h2 style="color:#2e7d32">Proyecto Ecomundo</h2>
+    <p>🌟 <b>Oliver Yael Cervantes Medellín</b></p>
+    <p>🌟 <b>Salomón De Lucio Munguía</b></p>
+    <p>🌟 <b>Dylan Gabriel Pérez Rojas</b></p>
+    <p>Desarrollado para ayudar a cuidar el planeta · 2026</p>
+  </div>
+</section>
+
+<script>
+"use strict";
+
+let playerName = localStorage.getItem("ecoPlayerName") || "";
+const playerNameInput = document.getElementById("playerNameInput");
+playerNameInput.value = playerName;
+updatePlayerDisplay();
+
+function savePlayerName(event){
+  event.preventDefault();
+  const name = playerNameInput.value.trim();
+  if(!name){
+    showMensaje("Escribe un apodo antes de guardarlo.", "#e53935");
+    return;
+  }
+  playerName = name;
+  localStorage.setItem("ecoPlayerName", playerName);
+  updatePlayerDisplay();
+  showMensaje("¡Apodo guardado!", "#2e7d32");
+  renderTabla();
+}
+
+function updatePlayerDisplay(){
+  document.getElementById("playerIdDisplay").textContent =
+    playerName ? `Jugando como: ${playerName}` : "Elige un apodo para aparecer en el ranking";
+}
+
+let correctas = 0;
+let errores = 0;
+let puntos = 0;
+let gameInterval = null;
+let fallingItem = null;
+let gameActive = false;
+let mensajeTimeout = null;
+
+const items = [
+  {t:"🍎", tipo:"organica"}, {t:"🍌", tipo:"organica"}, {t:"🥑", tipo:"organica"},
+  {t:"🍂", tipo:"organica"}, {t:"🌽", tipo:"organica"}, {t:"🧴", tipo:"plastico"},
+  {t:"🛍️", tipo:"plastico"}, {t:"🥤", tipo:"plastico"}, {t:"🧃", tipo:"plastico"},
+  {t:"🧼", tipo:"plastico"}, {t:"📄", tipo:"papel"}, {t:"📰", tipo:"papel"},
+  {t:"📦", tipo:"papel"}, {t:"📚", tipo:"papel"}, {t:"🧻", tipo:"papel"}
+];
+
+const datosLibro = [
+  {texto:"Una botella de plástico puede tardar cientos de años en degradarse.",emoji:"🧴",desc:"Reduce y reutiliza los envases."},
+  {texto:"Reciclar papel ayuda a reducir la tala de árboles y el consumo de agua.",emoji:"📄🌳",desc:"El papel usado puede tener una nueva vida."},
+  {texto:"Cerca del 3% del agua de la Tierra es dulce; una parte importante está congelada.",emoji:"💧🌎",desc:"El agua dulce disponible es limitada."},
+  {texto:"Los bosques son hogar de muchas especies y ayudan a almacenar carbono.",emoji:"🌳",desc:"Proteger los bosques ayuda al clima y a la biodiversidad."},
+  {texto:"Las bolsas reutilizables ayudan a reducir el consumo de bolsas desechables.",emoji:"🛍️",desc:"Lleva una bolsa reutilizable al comprar."},
+  {texto:"El océano produce una gran parte del oxígeno que se genera en el planeta.",emoji:"🌊💨",desc:"El fitoplancton marino es fundamental."},
+  {texto:"Reciclar aluminio requiere mucha menos energía que producirlo desde mineral.",emoji:"🥫⚡",desc:"Separa las latas limpias para reciclar."},
+  {texto:"El desperdicio de alimentos también desperdicia el agua y la energía usados para producirlos.",emoji:"🍽️",desc:"Planea tus comidas y aprovecha las sobras."},
+  {texto:"Los árboles absorben dióxido de carbono mientras crecen.",emoji:"🌳",desc:"También dan sombra y sirven de hábitat."},
+  {texto:"Muchos residuos plásticos que llegan al mar pueden dañar a los animales.",emoji:"🌊🐢",desc:"Evita que la basura llegue a calles y ríos."},
+  {texto:"El papel y el cartón limpios suelen poder reciclarse varias veces.",emoji:"♻️📄",desc:"Consulta las reglas de reciclaje de tu localidad."},
+  {texto:"Caminar, usar bicicleta o transporte público puede reducir emisiones por viaje.",emoji:"🚲🌱",desc:"Elige opciones de movilidad sostenible cuando puedas."},
+  {texto:"El vidrio es reciclable muchas veces si se recolecta y procesa correctamente.",emoji:"🍶♻️",desc:"Deposítalo según las reglas locales."},
+  {texto:"Los arrecifes de coral dan refugio y alimento a numerosas especies marinas.",emoji:"🐠🪸",desc:"Son ecosistemas valiosos y sensibles."},
+  {texto:"Las pilas pueden contener sustancias que contaminan si se tiran con la basura común.",emoji:"🔋💧",desc:"Llévalas a un punto de recolección especial."},
+  {texto:"Plantar especies nativas puede favorecer a la fauna local y ahorrar agua.",emoji:"🌱",desc:"Elige plantas adecuadas para tu región."},
+  {texto:"Las aves marinas pueden confundir fragmentos de plástico con alimento.",emoji:"🐦🌊",desc:"Mantener limpios los espacios reduce este riesgo."},
+  {texto:"Comprar solo lo necesario ayuda a reducir empaques y residuos.",emoji:"🛒",desc:"También puedes preferir productos duraderos."},
+  {texto:"El compostaje convierte muchos restos vegetales en abono para el suelo.",emoji:"🪱🍂",desc:"Cáscaras y hojas pueden convertirse en compost."},
+  {texto:"Tomar duchas más cortas ayuda a ahorrar agua.",emoji:"🚿💧",desc:"Cierra la llave mientras te enjabonas."},
+  {texto:"Reciclar materiales puede ahorrar energía frente a fabricar productos desde materias primas.",emoji:"⚡♻️",desc:"Separar bien los residuos mejora su aprovechamiento."},
+  {texto:"Los bosques ayudan a regular el ciclo del agua y protegen el suelo.",emoji:"🌲🌧️",desc:"Su conservación beneficia a las personas y la naturaleza."},
+  {texto:"La pérdida de hábitat es una de las principales amenazas para la vida silvestre.",emoji:"🦁🏞️",desc:"Proteger ecosistemas ayuda a muchas especies."},
+  {texto:"Producir ropa requiere materiales, agua y energía.",emoji:"👕",desc:"Reparar y reutilizar prendas prolonga su vida."},
+  {texto:"Los centros de datos usan electricidad para almacenar y procesar información.",emoji:"💻⚡",desc:"La eficiencia energética también importa en internet."},
+  {texto:"Las bolsas de tela pueden reutilizarse muchas veces.",emoji:"👜♻️",desc:"Recuerda llevarlas contigo."},
+  {texto:"El cambio climático actual está causado principalmente por actividades humanas.",emoji:"🌡️🔬",desc:"Reducir emisiones ayuda a limitar el calentamiento."},
+  {texto:"Apagar luces y aparatos que no usas puede ahorrar electricidad.",emoji:"💡",desc:"Desconecta cargadores cuando no hagan falta."},
+  {texto:"Las colillas son basura y sus filtros pueden liberar contaminantes.",emoji:"🚭💧",desc:"Nunca las tires en la calle o el agua."},
+  {texto:"Las latas de aluminio pueden reciclarse y volver a convertirse en productos.",emoji:"🥫♻️",desc:"Deposítalas limpias y vacías."},
+  {texto:"Los manglares sirven de refugio para especies y ayudan a proteger las costas.",emoji:"🌴🌊",desc:"Cuidarlos también beneficia a las comunidades costeras."},
+  {texto:"Una parte importante de los alimentos producidos en el mundo se pierde o desperdicia.",emoji:"🥕🗑️",desc:"Comprar y cocinar con planificación ayuda."},
+  {texto:"Las plantas nativas suelen adaptarse mejor al clima local.",emoji:"🌼💧",desc:"Pueden necesitar menos riego una vez establecidas."},
+  {texto:"Usar transporte compartido puede reducir la cantidad de autos en circulación.",emoji:"🚌",desc:"Compartir viajes también puede ahorrar combustible."},
+  {texto:"Un termo reutilizable puede reemplazar muchos vasos o botellas desechables.",emoji:"🥤♻️",desc:"Llévalo cuando salgas de casa."},
+  {texto:"El uso de antibióticos en animales debe manejarse responsablemente para evitar resistencias.",emoji:"🐄🩺",desc:"La salud humana, animal y ambiental están conectadas."},
+  {texto:"Buscar en internet requiere energía en dispositivos y centros de datos.",emoji:"🔎💻",desc:"La tecnología puede ser más eficiente."},
+  {texto:"Polinizadores como abejas y mariposas ayudan a muchas plantas a reproducirse.",emoji:"🐝🌸",desc:"Planta flores y evita pesticidas dañinos."},
+  {texto:"El suelo fértil tarda mucho tiempo en formarse y puede erosionarse rápidamente.",emoji:"🌱⏳",desc:"La vegetación ayuda a protegerlo."},
+  {texto:"Una alimentación variada con más productos vegetales puede reducir el impacto ambiental.",emoji:"🥗🌎",desc:"Elige alimentos locales y de temporada cuando puedas."},
+  {texto:"La deforestación libera carbono y reduce el hábitat disponible para la fauna.",emoji:"🔥🌲",desc:"Usar productos de origen responsable ayuda."},
+  {texto:"Los microplásticos son fragmentos diminutos de plástico presentes en el ambiente.",emoji:"🔬🧴",desc:"Reducir plásticos desechables ayuda a prevenir contaminación."},
+  {texto:"Reparar ropa y objetos evita desecharlos antes de tiempo.",emoji:"🧵👖",desc:"Reparar también puede ser una actividad creativa."},
+  {texto:"El agua embotellada requiere envases y transporte para llegar a quien la consume.",emoji:"🚰💧",desc:"Cuando el agua local es segura, una botella reutilizable reduce envases."},
+  {texto:"Lavar ropa con agua fría puede reducir la energía usada por la lavadora.",emoji:"👕❄️",desc:"Llena la lavadora antes de usarla."},
+  {texto:"Los humedales filtran agua, almacenan carbono y dan refugio a muchas especies.",emoji:"🦆💧",desc:"Son ecosistemas esenciales que debemos proteger."},
+  {texto:"Donar o regalar objetos en buen estado puede evitar que se conviertan en residuos.",emoji:"📦❤️",desc:"Alguien más quizá pueda aprovecharlos."},
+  {texto:"La biodiversidad incluye la variedad de genes, especies y ecosistemas.",emoji:"🦋🌎",desc:"Cada forma de vida cumple un papel."},
+  {texto:"Reciclar vidrio puede reducir el uso de materias primas nuevas.",emoji:"🍾♻️",desc:"Separa el vidrio de otros residuos."},
+  {texto:"Cuidar el agua, reducir residuos y proteger la naturaleza son acciones que suman.",emoji:"🌎💚",desc:"Los pequeños hábitos también cuentan."}
+];
+
+let currentDato = 0;
+
+function showSection(id){
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.getElementById("btn-" + id).classList.add("active");
+  if(id === "tabla") renderTabla();
+  if(id === "datos") renderDato();
+}
+
+function renderDato(){
+  const d = datosLibro[currentDato];
+  document.getElementById("datoTexto").innerHTML = `<b>Dato ${currentDato + 1}:</b><br><br>${d.texto}`;
+  document.getElementById("datoEmoji").textContent = d.emoji;
+  document.getElementById("datoDesc").textContent = d.desc;
+  document.getElementById("contadorDato").textContent = `${currentDato + 1} / ${datosLibro.length}`;
+  document.getElementById("pageLeftNum").textContent = `Página ${currentDato * 2 + 1}`;
+  document.getElementById("pageRightNum").textContent = `Página ${currentDato * 2 + 2}`;
+  document.getElementById("progressFill").style.width = `${((currentDato + 1) / datosLibro.length) * 100}%`;
+  document.getElementById("btnPrev").disabled = currentDato === 0;
+  document.getElementById("btnNext").disabled = currentDato === datosLibro.length - 1;
+}
+
+function nextDato(){
+  if(currentDato < datosLibro.length - 1){
+    currentDato++;
+    renderDato();
+  }
+}
+function prevDato(){
+  if(currentDato > 0){
+    currentDato--;
+    renderDato();
+  }
+}
+
+function startGame(){
+  clearInterval(gameInterval);
+  if(fallingItem) fallingItem.remove();
+  correctas = 0;
+  errores = 0;
+  puntos = 0;
+  gameActive = true;
+  updateStats();
+  spawnItem();
+  gameInterval = setInterval(moveItem, 30);
+}
+
+function spawnItem(){
+  if(!gameActive) return;
+  if(fallingItem) fallingItem.remove();
+
+  const area = document.getElementById("gameArea");
+  const data = items[Math.floor(Math.random() * items.length)];
+  const el = document.createElement("div");
+
+  el.className = "item";
+  el.textContent = data.t;
+  el.dataset.tipo = data.tipo;
+  el.style.left = `${Math.random() * 70 + 10}%`;
+  el.style.top = "0px";
+  el.dataset.y = "0";
+
+  area.appendChild(el);
+  fallingItem = el;
+}
+
+function moveItem(){
+  if(!fallingItem || !gameActive) return;
+
+  const y = Number(fallingItem.dataset.y) + 2.5;
+  fallingItem.dataset.y = String(y);
+  fallingItem.style.top = `${y}px`;
+
+  if(y >= document.getElementById("gameArea").clientHeight - 115){
+    errores++;
+    showMensaje("¡Se te pasó! Intenta clasificarlo antes de que llegue abajo.", "#e53935");
+    fallingItem.remove();
+    fallingItem = null;
+    updateStats();
+    saveScore();
+    spawnItem();
+  }
+}
+
+function checkDrop(tipoElegido){
+  if(!fallingItem || !gameActive) return;
+
+  const tipoReal = fallingItem.dataset.tipo;
+  if(tipoElegido === tipoReal){
+    correctas++;
+    puntos += 10;
+    showMensaje("✅ ¡Correcto! +10 puntos", "#2e7d32");
+  }else{
+    errores++;
+    showMensaje("❌ Ese no era el contenedor correcto.", "#e53935");
+  }
+
+  fallingItem.remove();
+  fallingItem = null;
+  updateStats();
+  saveScore();
+  spawnItem();
+}
+
+function updateStats(){
+  document.getElementById("correctas").textContent = correctas;
+  document.getElementById("puntos").textContent = puntos;
+  document.getElementById("errores").textContent = errores;
+}
+
+function showMensaje(text, color){
+  const el = document.getElementById("mensaje");
+  el.textContent = text;
+  el.style.background = color;
+  el.style.display = "block";
+  clearTimeout(mensajeTimeout);
+  mensajeTimeout = setTimeout(() => {
+    el.style.display = "none";
+  }, 1400);
+}
+
+document.addEventListener("keydown", e => {
+  if(e.key === "1") checkDrop("organica");
+  if(e.key === "2") checkDrop("plastico");
+  if(e.key === "3") checkDrop("papel");
+});
+
+function getScores(){
+  try{
+    return JSON.parse(localStorage.getItem("ecoScores") || "[]");
+  }catch{
+    return [];
+  }
+}
+
+function saveScore(){
+  if(!playerName) return;
+
+  const scores = getScores();
+  const existing = scores.find(s => s.nombre === playerName);
+
+  if(existing){
+    if(puntos > existing.puntos){
+      existing.puntos = puntos;
+      existing.correctas = correctas;
+    }
+  }else{
+    scores.push({nombre:playerName, puntos, correctas});
+  }
+
+  localStorage.setItem("ecoScores", JSON.stringify(scores));
+}
+
+function renderTabla(){
+  const scores = getScores()
+    .sort((a,b) => b.puntos - a.puntos)
+    .slice(0,10);
+
+  const tbody = document.querySelector("#tablaClas tbody");
+  tbody.innerHTML = "";
+
+  if(scores.length === 0){
+    tbody.innerHTML = '<tr><td colspan="4">Aún no hay puntajes. ¡Guarda tu apodo y juega!</td></tr>';
+    return;
+  }
+
+  scores.forEach((s,i) => {
+    const tr = document.createElement("tr");
+    if(s.nombre === playerName) tr.className = "you";
+
+    const values = [
+      String(i + 1),
+      s.nombre + (s.nombre === playerName ? " (tú)" : ""),
+      `${s.puntos} puntos`,
+      String(s.correctas)
+    ];
+
+    values.forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+renderDato();
+renderTabla();
+</script>
+</body>
+</html>
